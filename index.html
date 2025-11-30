@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>PS4 Remote PKG Installer - Game Download</title>
+    <title>PS4 Remote PKG Installer - External Links</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
@@ -21,36 +21,77 @@
         .button:hover { background-color: #2980b9; }
         .status { margin-top: 20px; padding: 10px; border-radius: 4px; background-color: #2c3e50; }
         h1 { border-bottom: 2px solid #3498db; padding-bottom: 10px; }
+        .warning { color: yellow; font-weight: bold; }
     </style>
 </head>
 <body>
 
     <div class="container">
         <h1>🎮 Chọn Game Cài Đặt (Yêu cầu GoldHEN đã bật)</h1>
-        <p>Vui lòng đảm bảo GoldHEN đã được kích hoạt thành công trên PS4 trước khi nhấn nút.</p>
+        <p>Vui lòng đảm bảo **GoldHEN đã được tiêm thành công** trên PS4 trước khi nhấn nút.</p>
         
         <hr style="margin: 20px 0;">
         
         <button class="button" onclick="initiateInstall('game_a')">Cài Đặt Game A (Từ VikingFile)</button>
-        <button class="button" onclick="initiateInstall('game_b')">Cài Đặt Game B (Từ VikingFile)</button>
+        <button class="button" onclick="initiateInstall('game_b')">Cài Đặt Game B (Từ Nguồn Khác)</button>
 
         <div id="status-message" class="status">Sẵn sàng để gửi lệnh cài đặt.</div>
+        
+        <p class="warning" id="mocking-status"></p>
     </div>
 
     <script>
-        // --- CẤU HÌNH CỦA BẠN (SỬ DỤNG LINK TẢI TRỰC TIẾP) ---
+        // =========================================================
+        //                 CẤU HÌNH QUAN TRỌNG
+        // =========================================================
         
         const API_PORT = 12800; 
-        const PS4_IP = '127.0.0.1'; // Luôn dùng 127.0.0.1 để gọi API trên chính PS4
+        const PS4_IP = '127.0.0.1'; 
         
-        // DANH SÁCH GAME VÀ LINK TẢI TRỰC TIẾP TỪ BÊN NGOÀI
+        // 🚨 CHẾ ĐỘ MÔ PHỎNG (MOCKING) 🚨
+        // Đặt = true để test trên PC/Điện thoại. Đặt = false khi test trên PS4 thật.
+        const IS_MOCKING_ENABLED = true; 
+        
+        // DANH SÁCH GAME VÀ LINK TẢI TRỰC TIẾP (THAY ĐỔI URL TẠI ĐÂY)
         const gameList = {
-            'game_a': 'https://vikingfile.com/d/CXf3Nbdntr/%5BSuperPSX%5D-eFootball_CUSA26997_v1.39_FULLGAME_%5B9.00%5D_PS4.pkg', // Thay bằng link PKG đã xác nhận
-            'game_b': 'https://vikingfile.com/files/AnotherGameB.pkg', // Thay bằng link PKG đã xác nhận
-            // Thêm game khác
+            'game_a': 'https://vikingfile.com/d/JuPczRTl3l/%5BSuperPSX%5D-eFootball_CUSA26997_v1.39_FULLGAME_%5B9.00%5D_PS4.pkg', // Thay bằng link PKG đã xác nhận
+            'game_b': 'http://another-public-host.com/files/AnotherGameB.pkg', // Thay bằng link PKG đã xác nhận
         };
-        // -----------------------------------------------------------
+        // =========================================================
+        
+        // Hiển thị trạng thái Mocking
+        if (IS_MOCKING_ENABLED) {
+            document.getElementById('mocking-status').innerText = '⚠️ CHẾ ĐỘ MOCKING ĐANG BẬT: Đang giả lập PS4 API.';
+        } else {
+            document.getElementById('mocking-status').innerText = '';
+        }
 
+        // --- BƯỚC 1: HÀM MÔ PHỎNG GỬI LỆNH (CHỈ CHẠY KHI TEST) ---
+        const originalFetch = window.fetch;
+
+        window.fetch = function(url, options) {
+            // Chỉ chặn lệnh gửi tới GoldHEN API
+            if (IS_MOCKING_ENABLED && url.includes('127.0.0.1:12800')) {
+                console.warn('MOCKING: Lệnh gửi đến GoldHEN API đã bị chặn. Trả về kết quả thành công giả định.');
+                
+                return new Promise(resolve => {
+                    setTimeout(() => {
+                        const mockResponse = {
+                            ok: true, // Mô phỏng phản hồi HTTP 200 OK
+                            status: 200,
+                            text: () => Promise.resolve('{"status":"ok","message":"Command sent successfully"}'),
+                        };
+                        resolve(mockResponse);
+                    }, 500); // Trễ 500ms
+                });
+            } else {
+                // Nếu không phải lệnh GoldHEN, sử dụng hàm fetch gốc
+                return originalFetch(url, options);
+            }
+        };
+        // ---------------------------------------------------------
+        
+        // --- BƯỚC 2: HÀM CHÍNH GỬI LỆNH CÀI ĐẶT ---
         function initiateInstall(gameId) {
             const PKG_URL = gameList[gameId]; 
             const PS4_API_URL = `http://${PS4_IP}:${API_PORT}/api/install`;
