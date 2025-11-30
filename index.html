@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PS4 Remote PKG Installer - Game Download</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; margin: 20px; background-color: #2c3e50; color: white; }
+        .container { max-width: 600px; margin: auto; padding: 20px; border-radius: 8px; background-color: #34495e; }
+        .button {
+            padding: 12px 25px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background-color: #3498db;
+            color: white;
+            margin: 8px;
+            transition: background-color 0.3s;
+        }
+        .button:hover { background-color: #2980b9; }
+        .status { margin-top: 20px; padding: 10px; border-radius: 4px; background-color: #2c3e50; }
+        h1 { border-bottom: 2px solid #3498db; padding-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>🎮 Chọn Game Cài Đặt (Yêu cầu GoldHEN đã bật)</h1>
+        <p>Vui lòng đảm bảo GoldHEN đã được kích hoạt thành công trên PS4 trước khi nhấn nút.</p>
+        
+        <hr style="margin: 20px 0;">
+        
+        <button class="button" onclick="initiateInstall('game_a')">Cài Đặt Game A (Từ VikingFile)</button>
+        <button class="button" onclick="initiateInstall('game_b')">Cài Đặt Game B (Từ VikingFile)</button>
+
+        <div id="status-message" class="status">Sẵn sàng để gửi lệnh cài đặt.</div>
+    </div>
+
+    <script>
+        // --- CẤU HÌNH CỦA BẠN (SỬ DỤNG LINK TẢI TRỰC TIẾP) ---
+        
+        const API_PORT = 12800; 
+        const PS4_IP = '127.0.0.1'; // Luôn dùng 127.0.0.1 để gọi API trên chính PS4
+        
+        // DANH SÁCH GAME VÀ LINK TẢI TRỰC TIẾP TỪ BÊN NGOÀI
+        const gameList = {
+            'game_a': 'https://vikingfile.com/files/TheGameA.pkg', // Thay bằng link PKG đã xác nhận
+            'game_b': 'https://vikingfile.com/files/AnotherGameB.pkg', // Thay bằng link PKG đã xác nhận
+            // Thêm game khác
+        };
+        // -----------------------------------------------------------
+
+        function initiateInstall(gameId) {
+            const PKG_URL = gameList[gameId]; 
+            const PS4_API_URL = `http://${PS4_IP}:${API_PORT}/api/install`;
+
+            if (!PKG_URL) {
+                document.getElementById('status-message').innerHTML = '<span style="color:red;">Lỗi: Không tìm thấy ID game này.</span>';
+                return;
+            }
+            
+            if (!confirm(`Xác nhận cài đặt game ID: ${gameId}? (Tải qua Internet)`)) {
+                return; 
+            }
+
+            document.getElementById('status-message').innerHTML = '<span style="color:yellow;">Đang gửi lệnh...</span>';
+
+            const payloadData = { url: PKG_URL };
+
+            fetch(PS4_API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payloadData),
+            })
+            .then(response => {
+                if (response.ok) {
+                    document.getElementById('status-message').innerHTML = 
+                        `<span style="color:lime;">✅ Lệnh GỬI thành công!</span><br>PS4 đang tải Game từ **Internet**. Kiểm tra mục Notifications.`;
+                } else {
+                    document.getElementById('status-message').innerHTML = 
+                        `<span style="color:red;">❌ Lỗi ${response.status}: API GoldHEN không phản hồi.</span><br>Vui lòng đảm bảo GoldHEN đã hoạt động và PS4 có Internet.`;
+                }
+                return response.text();
+            })
+            .catch(error => {
+                document.getElementById('status-message').innerHTML = 
+                    `<span style="color:red;">❌ Lỗi kết nối mạng: ${error.message}</span><br>Có thể GoldHEN chưa chạy hoặc xảy ra lỗi mạng.`;
+            });
+        }
+    </script>
+
+</body>
+</html>
